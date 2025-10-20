@@ -4,31 +4,12 @@ import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,7 +25,6 @@ import com.example.artspace.ui.theme.ArtSpaceTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             ArtSpaceTheme {
                 Surface(
@@ -58,32 +38,34 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-
-
-
-
-data class Artwork(val imageResId: Int, val title: String, val artist: String, val year: Int)
+data class Artwork(
+    val imageResId: Int,
+    val title: String,
+    val description: String
+)
 
 @Composable
 fun ArtSpaceApp() {
-    var currentIndex by remember { androidx.compose.runtime.mutableIntStateOf(0) }
+    var currentIndex by remember { mutableStateOf(0) }
 
     val artworks = listOf(
-        Artwork(R.drawable.ic_launcher_background, "Sailing Under the Bridge", "Kat Kuan", 2017),
-        Artwork(R.drawable.ic_launcher_background, "Misty Mountains", "John Doe", 2020),
-        Artwork(R.drawable.ic_launcher_background, "Golden Sunrise", "Jane Smith", 2019)
+        Artwork(
+            R.drawable.vang,
+            "Текст",
+            "текст"
+        )
+
     )
 
-    // Определяем, в каком режиме отображается экран: портретном или альбомном
-    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isLandscape =
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
-    // В зависимости от ориентации экрана выбираем макет
     if (isLandscape) {
-        LandscapeLayout(artworks = artworks, currentIndex = currentIndex) { newIndex ->
+        LandscapeLayout(artworks, currentIndex) { newIndex ->
             currentIndex = newIndex
         }
     } else {
-        PortraitLayout(artworks = artworks, currentIndex = currentIndex) { newIndex ->
+        PortraitLayout(artworks, currentIndex) { newIndex ->
             currentIndex = newIndex
         }
     }
@@ -93,36 +75,28 @@ fun ArtSpaceApp() {
 fun PortraitLayout(artworks: List<Artwork>, currentIndex: Int, onIndexChange: (Int) -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
+        verticalArrangement = Arrangement.SpaceBetween,
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        DisplayArtwork(
-            artwork = artworks[currentIndex],
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f)  // 70% высоты экрана
-        )
+        // Анимированный переход между карточками
+        Crossfade(targetState = artworks[currentIndex], label = "ArtworkTransition") { artwork ->
+            DisplayArtwork(artwork = artwork)
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Кнопки управления в портретном режиме
         NavigationButtons(
             artworks = artworks,
             currentIndex = currentIndex,
-            onIndexChange = onIndexChange,
-            modifier = Modifier.weight(0.3f)  // 30% высоты экрана
+            onIndexChange = onIndexChange
         )
     }
 }
 
 @Composable
-fun LandscapeLayout(
-    artworks: List<Artwork>,
-    currentIndex: Int,
-    onIndexChange: (Int) -> Unit
-) {
+fun LandscapeLayout(artworks: List<Artwork>, currentIndex: Int, onIndexChange: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxSize()
@@ -130,31 +104,28 @@ fun LandscapeLayout(
         horizontalArrangement = Arrangement.SpaceAround,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Изображение и кнопки рядом друг с другом в альбомном режиме
-        DisplayArtwork(
-            artwork = artworks[currentIndex],
-            modifier = Modifier
-                .fillMaxHeight()
-                .weight(1f)  // 50% ширины экрана
-        )
+        Crossfade(targetState = artworks[currentIndex], label = "ArtworkTransitionLandscape") { artwork ->
+            DisplayArtwork(artwork = artwork, modifier = Modifier.weight(1f))
+        }
+
+        Spacer(modifier = Modifier.width(16.dp))
 
         NavigationButtons(
             artworks = artworks,
             currentIndex = currentIndex,
             onIndexChange = onIndexChange,
-            modifier = Modifier.weight(1f)  // 50% ширины экрана
+            modifier = Modifier.weight(0.5f)
         )
     }
 }
 
 @Composable
-fun DisplayArtwork(
-    artwork: Artwork,
-    modifier: Modifier = Modifier
-) {
+fun DisplayArtwork(artwork: Artwork, modifier: Modifier = Modifier) {
     Card(
-        shape = RoundedCornerShape(8.dp),
-        modifier = modifier.padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        modifier = modifier
+            .padding(8.dp)
+            .fillMaxWidth(),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
         Column(
@@ -162,25 +133,24 @@ fun DisplayArtwork(
             modifier = Modifier.padding(16.dp)
         ) {
             Image(
-                painter = painterResource(R.drawable.ic_launcher_background),
-                contentDescription = null,
+                painter = painterResource(id = artwork.imageResId),
+                contentDescription = artwork.title,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .height(300.dp)
+                    .height(320.dp)
                     .fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                text = "",
+                text = artwork.title,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                modifier = Modifier.align(Alignment.Start)
+                fontSize = 22.sp
             )
+            Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "",
+                text = artwork.description,
                 fontSize = 16.sp,
-                color = Color.Gray,
-                modifier = Modifier.align(Alignment.Start)
+                color = Color.DarkGray
             )
         }
     }
@@ -191,35 +161,38 @@ fun NavigationButtons(
     artworks: List<Artwork>,
     currentIndex: Int,
     onIndexChange: (Int) -> Unit,
-    modifier: Modifier = Modifier,
+    modifier: Modifier = Modifier
 ) {
     Row(
         horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
             .fillMaxWidth()
-            .padding(16.dp)
+            .padding(vertical = 16.dp)
     ) {
-        Button(onClick = {
-            onIndexChange((currentIndex - 1 + artworks.size) % artworks.size)
-        }) {
+        Button(
+            onClick = {
+                onIndexChange((currentIndex - 1 + artworks.size) % artworks.size)
+            },
+            modifier = Modifier.weight(1f)
+        ) {
             Text("Previous")
         }
-        Button(onClick = {
-            onIndexChange((currentIndex + 1) % artworks.size)
-        }) {
+        Spacer(modifier = Modifier.width(16.dp))
+        Button(
+            onClick = {
+                onIndexChange((currentIndex + 1) % artworks.size)
+            },
+            modifier = Modifier.weight(1f)
+        ) {
             Text("Next")
         }
     }
 }
 
-
-
-@Preview(
-    showBackground = true,
-    showSystemUi = true,
-)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun GreetingPreview() {
+fun PreviewArtSpaceApp() {
     ArtSpaceTheme {
         ArtSpaceApp()
     }
