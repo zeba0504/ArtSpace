@@ -52,7 +52,7 @@ fun ArtSpaceApp() {
         Artwork(
             R.drawable.vang,
             "Текст",
-            "текст"
+            "описание"
         )
 
     )
